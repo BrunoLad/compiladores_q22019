@@ -58,6 +58,10 @@ public class AnalisadorLexico {
         return c >= '0' && c <= '9';
     }
 
+    private void retroceder() {
+        pos--;
+    }
+
     private void retroceder(int i) {
         pos -= i;
     }
@@ -88,7 +92,8 @@ public class AnalisadorLexico {
                     } else if (isBlank(c)) {
                         s = 0;
                     } else {
-                        return new Token(Token.ERROR, text);
+                        s = 6;
+                        text += c;
                     }
                     break;
                 case 1:
@@ -103,10 +108,11 @@ public class AnalisadorLexico {
                             return new Token(Token.ID, text);
                         }
                     } else if (isOperator(c) || isPunctuation(c)) {
-                        retroceder(1);
+                        retroceder();
                         return new Token(Token.ID, text);
                     } else {
-                        return null;
+                        retroceder();
+                        s = 0;
                     }
                     break;
                 case 2:
@@ -114,12 +120,18 @@ public class AnalisadorLexico {
                     if (isOperator(c) && c == '=') {
                         text += c;
                         return new Token(Token.OPERATOR, text);
+                    } else if (isDigit(c) || isLetter(c)) {
+                        retroceder();
+                        return new Token(Token.OPERATOR, text);
+                    } else if (isBlank(c)) {
+                        return new Token(Token.OPERATOR, text);
+                    } else {
+                        retroceder();
+                        s = 0;
                     }
-                    return new Token(Token.OPERATOR, text);
-
+                    break;
                 case 3:
                     return new Token(Token.PUNCTUATION, text);
-
                 case 4:
                     c = nextChar();
                     if (isDigit(c)) {
@@ -128,12 +140,47 @@ public class AnalisadorLexico {
                     } else if (isPunctuation(c)) {
                         char next = nextChar();
 
-                        if (isDigit(next)) {
-
-                        } else if (isBlank(next)) {
+                        if (isBlank(next)) {
                             retroceder(2);
                             return new Token(Token.INT_NUMBER, text);
+                        } else {
+                            retroceder();
+                            s = 5;
+                            text += c;
                         }
+                    } else if (isOperator(c)) {
+                        retroceder();
+                        return new Token(Token.INT_NUMBER, text);
+                    } else {
+                        retroceder();
+                        s = 0;
+                    }
+                    break;
+                case 5:
+                    c = nextChar();
+                    if (isDigit(c)) {
+                        s = 5;
+                        text += c;
+                    } else if (isOperator(c) || isPunctuation(c)) {
+                        retroceder();
+                        return new Token(Token.FLOAT_NUMBER, text);
+                    } else if (isBlank(c)) {
+                        return new Token(Token.FLOAT_NUMBER, text);
+                    } else {
+                        retroceder();
+                        s = 0;
+                    }
+                    break;
+                case 6:
+                    c = nextChar();
+                    char next = nextChar();
+                    if (isBlank(c) || (c == '.' && isBlank(next))) {
+                        retroceder(2);
+                        return new Token(Token.ERROR, text);
+                    } else {
+                        retroceder();
+                        s = 6;
+                        text += c;
                     }
                     break;
             }
