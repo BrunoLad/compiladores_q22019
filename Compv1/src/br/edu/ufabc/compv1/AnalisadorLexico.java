@@ -6,7 +6,7 @@ import java.io.IOException;
 
 public class AnalisadorLexico {
 
-    private String[] reservedWords = {"programa","declare","escreva","leia", "inicio", "fim", "inteiros"};
+    private String[] reservedWords = {"programa", "declare", "escreva", "leia", "inicio", "fim", "inteiros"};
     private char[] content;
     private int pos;
 
@@ -21,14 +21,15 @@ public class AnalisadorLexico {
 
     }
 
-    private boolean isReservedWord(String text){
-        for (String s: reservedWords){
-            if (text.equals(s)){
+    private boolean isReservedWord(String text) {
+        for (String s : reservedWords) {
+            if (text.equals(s)) {
                 return true;
             }
         }
         return false;
     }
+
     boolean eof() {
         return pos == content.length;
     }
@@ -48,8 +49,8 @@ public class AnalisadorLexico {
     private boolean isOperator(char c) {
         return c == '+' || c == '-' || c == '*' || c == '/' || c == '^' || c == ':' || c == '=';
     }
-    
-    private boolean isSignal(char c) {
+
+    private boolean isPunctuation(char c) {
         return c == ',' || c == ':' || c == '(' || c == ')' || c == '.';
     }
 
@@ -57,13 +58,13 @@ public class AnalisadorLexico {
         return c >= '0' && c <= '9';
     }
 
-    private void retroceder() {
-        pos--;
+    private void retroceder(int i) {
+        pos -= i;
     }
 
     public Token nextToken() {
         int s = 0;
-        String text="";
+        String text = "";
         Token token;
         while (true) {
             if (eof()) {
@@ -72,12 +73,18 @@ public class AnalisadorLexico {
             switch (s) {
                 case 0:
                     char c = nextChar();
-                    if (isLetter(c)) {
+                    if (isDigit(c)) {
+                        s = 4;
+                        text += c;
+                    } else if (isLetter(c)) {
                         s = 1;
                         text += c;
                     } else if (isOperator(c)) {
                         text += c;
                         s = 2;
+                    } else if (isPunctuation(c)) {
+                        s = 3;
+                        text += c;
                     } else if (isBlank(c)) {
                         s = 0;
                     } else {
@@ -90,12 +97,13 @@ public class AnalisadorLexico {
                         s = 1;
                         text += c;
                     } else if (isBlank(c)) {
-                        if (isReservedWord(text))
-                           return new Token(Token.RESERVERD_WORD, text);
-                        else
+                        if (isReservedWord(text)) {
+                            return new Token(Token.RESERVERD_WORD, text);
+                        } else {
                             return new Token(Token.ID, text);
-                    } else if (isOperator(c)) {
-                        retroceder();
+                        }
+                    } else if (isOperator(c) || isPunctuation(c)) {
+                        retroceder(1);
                         return new Token(Token.ID, text);
                     } else {
                         return null;
@@ -103,11 +111,31 @@ public class AnalisadorLexico {
                     break;
                 case 2:
                     c = nextChar();
-                    if(isOperator(c)){
+                    if (isOperator(c) && c == '=') {
                         text += c;
                         return new Token(Token.OPERATOR, text);
                     }
                     return new Token(Token.OPERATOR, text);
+
+                case 3:
+                    return new Token(Token.PUNCTUATION, text);
+
+                case 4:
+                    c = nextChar();
+                    if (isDigit(c)) {
+                        s = 4;
+                        text += c;
+                    } else if (isPunctuation(c)) {
+                        char next = nextChar();
+
+                        if (isDigit(next)) {
+
+                        } else if (isBlank(next)) {
+                            retroceder(2);
+                            return new Token(Token.INT_NUMBER, text);
+                        }
+                    }
+                    break;
             }
         }
     }
